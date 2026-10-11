@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="ar">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<style>:root{padding:env(safe-area-inset-top,0px) 0 env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}</style>
+</head>
+<body>
+<title>أذكار الصباح والمساء</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Amiri+Quran&family=Amiri:wght@400;700&display=swap">
+<style>
+  [hidden] { display: none !important; }
+  /* Layout: a single reading column like a printed booklet page, right-to-left, one sticky bar for size and sections. */
+  :root {
+    --bg: #f6f1e4; --paper: #fffcf3; --fg: #1f1b14; --muted: #7a6f5c; --line: #e6dcc4; --gold: #a9802f; --green: #1e5b45;
+    --q: 'Amiri Quran', 'Amiri', 'Noto Naskh Arabic', 'Geeza Pro', serif;
+    --t: 'Amiri', 'Noto Naskh Arabic', 'Geeza Pro', serif;
+    --size: 2rem;
+  }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+    --bg: #12110d; --paper: #1a1813; --fg: #efe8d8; --muted: #a99e86; --line: #2f2b22; --gold: #d2ab5a; --green: #6cc3a0; color-scheme: dark } }
+  :root[data-theme="dark"] { --bg: #12110d; --paper: #1a1813; --fg: #efe8d8; --muted: #a99e86; --line: #2f2b22; --gold: #d2ab5a; --green: #6cc3a0; color-scheme: dark }
+
+  body { background: var(--bg); color: var(--fg); font-family: var(--t); direction: rtl; }
+  .bar { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 2; background: color-mix(in srgb, var(--bg) 92%, transparent);
+         backdrop-filter: blur(6px); border-bottom: 1px solid var(--line); }
+  .bar .in { max-width: 46rem; margin: 0 auto; padding: .5rem 16px; display: flex; gap: .5rem; align-items: center; }
+  .bar button, .bar select { font: inherit; font-size: 1.05rem; color: var(--fg); background: var(--paper); border: 1px solid var(--line);
+         border-radius: 10px; height: 2.6rem; padding: 0 .8rem; cursor: pointer; }
+  .bar select { flex: 1; min-width: 0; }
+  .bar button:focus-visible, .bar select:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+  .bar .pl { display: grid; place-items: center; width: 2.6rem; height: 2.6rem; border-radius: 10px; border: 1px solid var(--line); background: var(--paper); color: var(--green); text-decoration: none; flex: none; }
+  .bar .sz { font-family: var(--t); font-weight: 700; width: 2.8rem; padding: 0; }
+
+  article { max-width: 46rem; margin: 0 auto; padding-inline: 16px; padding-block: 1.5rem 4rem; }
+  .cover { text-align: center; padding: 1rem 0 1.5rem; }
+  .cover .b { font-family: var(--q); font-size: calc(var(--size) * 1.05); color: var(--green); margin: 0; line-height: 2; }
+  .cover h1 { font-family: var(--t); font-weight: 700; font-size: calc(var(--size) * .95); margin: .2rem 0 0; line-height: 1.8; text-wrap: balance; }
+  h2 { font-family: var(--t); font-weight: 700; font-size: calc(var(--size) * .82); color: var(--green); text-align: center; margin: 2.2rem 0 1rem;
+       display: flex; align-items: center; gap: .8rem; scroll-margin-top: 4.5rem; }
+  h2::before, h2::after { content: ""; flex: 1; height: 1px; background: linear-gradient(to left, transparent, var(--gold), transparent); }
+  .item { background: var(--paper); border: 1px solid var(--line); border-radius: 14px; padding: .9rem 1.1rem; margin: 0 0 .9rem; }
+  .label { font-family: var(--t); font-size: calc(var(--size) * .58); color: var(--gold); margin: 0 0 .2rem; }
+  .ar { font-family: var(--q); font-size: var(--size); line-height: 2.3; text-align: right; margin: 0; white-space: pre-line; }
+  .note { font-family: var(--t); font-size: calc(var(--size) * .62); color: var(--muted); margin: 0 0 .6rem; text-align: center; }
+  .rep { display: inline-block; font-family: var(--t); font-size: calc(var(--size) * .55); color: var(--paper); background: var(--gold);
+         border-radius: 999px; padding: 0 .7em; line-height: 1.8; margin-top: .3rem; }
+  .end { text-align: center; color: var(--muted); font-size: calc(var(--size) * .6); margin-top: 2rem; line-height: 2; }
+</style>
+
+<div class="bar"><div class="in">
+  <button class="sz" id="bigger" aria-label="Schrift größer">+أ</button>
+  <button class="sz" id="smaller" aria-label="Schrift kleiner">−أ</button>
+  <select id="jump" aria-label="Abschnitt"></select>
+  <a class="pl" href="./" aria-label="Abspielen">▶</a>
+</div></div>
+<article id="page"></article>
+
+<script>
+fetch("data/lesen.json").then(r => r.json()).then(DATA => {
+  const page = document.getElementById("page"), jump = document.getElementById("jump");
+  const AR = n => String(n).replace(/\d/g, d => "٠١٢٣٤٥٦٧٨٩"[d]);
+  const SIZES = [1.4, 1.65, 2, 2.4, 2.9, 3.4];
+  let si = 2; try { const v = +localStorage.getItem("adhkar-read:size"); if (v >= 0 && v < SIZES.length && localStorage.getItem("adhkar-read:size") !== null) si = v; } catch {}
+  const apply = () => { document.documentElement.style.setProperty("--size", SIZES[si] + "rem"); try { localStorage.setItem("adhkar-read:size", si); } catch {} };
+  document.getElementById("bigger").onclick = () => { si = Math.min(SIZES.length - 1, si + 1); apply(); };
+  document.getElementById("smaller").onclick = () => { si = Math.max(0, si - 1); apply(); };
+  apply();
+
+  const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
+  const cover = el("div", "cover");
+  cover.append(el("p", "b", "بِسۡمِ ٱللَّهِ ٱلرَّحۡمَٰنِ ٱلرَّحِيمِ"), el("h1", null, DATA[0].intro_ar || "أذكار الصباح والمساء"));
+  page.append(cover);
+
+  DATA.forEach((sec, si2) => {
+    const h = el("h2", null, sec.ar); h.id = "s" + si2; page.append(h);
+    jump.append(new Option(sec.ar, "s" + si2));
+    sec.notes.forEach(n => n.ar && page.append(el("p", "note", n.ar)));
+    sec.items.forEach(it => {
+      if (it.note) page.append(el("p", "note", it.note.ar));
+      const box = el("section", "item");
+      if (it.label) box.append(el("p", "label", it.label));
+      box.append(el("p", "ar", it.ar_read));
+      if (it.label && it.reps > 1) box.append(el("span", "rep", AR(it.reps) + " مرات"));
+      if (it.tail && it.label) { const t = el("p", "ar", "( " + it.tail.d + " )"); box.append(t, el("span", "rep", AR(it.tail.count) + " مرات")); }
+      page.append(box);
+    });
+  });
+  jump.onchange = () => document.getElementById(jump.value).scrollIntoView({ behavior: "smooth", block: "start" });
+});
+</script>
+
+</body>
+</html>

@@ -1,0 +1,418 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<style>:root{padding:env(safe-area-inset-top,0px) 0 env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}</style>
+</head>
+<body>
+<title>Adhkar zum Mitsprechen</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Amiri+Quran&family=Amiri&family=Noto+Sans:ital,wght@0,400;0,600;1,400&display=swap">
+<style>
+  [hidden] { display: none !important; }
+  /* Layout: one-screen app. Thin progress line, header with Morgen/Abend/Freitag, the Arabic text fills the middle,
+     a fixed control dock at the bottom. Morning uses a dawn-amber accent, evening and Friday a dusk-indigo accent. */
+  :root {
+    --bg: #f5f2ea; --surface: #fffdf8; --fg: #1c211f; --muted: #6b746e; --line: #e3ddcf;
+    --accent: #b5741a; --accent-soft: #f4e3c4; --accent-fg: #ffffff; --you: #2f7a5b; --you-soft: #dcefe5;
+    --q: 'Amiri Quran', 'Amiri', 'Noto Naskh Arabic', 'Geeza Pro', serif;
+    --ar: 'Amiri', 'Noto Naskh Arabic', 'Geeza Pro', serif;
+    --ui: 'Noto Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+    --ar-size: 1.85rem;
+  }
+  :root[data-time="e"], :root[data-time="f"] { --accent: #4b4ea8; --accent-soft: #e2e2f5; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+    --bg: #111513; --surface: #181d1b; --fg: #e8ece9; --muted: #9aa49e; --line: #2a312e;
+    --accent: #e3a24a; --accent-soft: #3a2d18; --accent-fg: #17120a; --you: #5cc298; --you-soft: #17322a; color-scheme: dark } }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"])[data-time="e"], :root:not([data-theme="light"])[data-time="f"] {
+    --accent: #9da2f2; --accent-soft: #262844; --accent-fg: #0f1022; } }
+  :root[data-theme="dark"] { --bg: #111513; --surface: #181d1b; --fg: #e8ece9; --muted: #9aa49e; --line: #2a312e;
+    --accent: #e3a24a; --accent-soft: #3a2d18; --accent-fg: #17120a; --you: #5cc298; --you-soft: #17322a; color-scheme: dark }
+  :root[data-theme="dark"][data-time="e"], :root[data-theme="dark"][data-time="f"] { --accent: #9da2f2; --accent-soft: #262844; --accent-fg: #0f1022; }
+
+  html, body { height: 100%; }
+  body { background: var(--bg); color: var(--fg); font-family: var(--ui); font-size: 15px; line-height: 1.45;
+         display: flex; flex-direction: column; overflow: hidden; }
+  button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
+  button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 8px; }
+
+  .progress { height: 3px; background: var(--line); flex: none; }
+  .progress i { display: block; height: 100%; width: 0; background: var(--accent); transition: width .3s; }
+  header { flex: none; display: grid; gap: .6rem; padding: .7rem 16px .5rem; }
+  .row { display: flex; align-items: center; gap: .5rem; min-width: 0; }
+  .seg { display: inline-flex; background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 3px; }
+  .seg button { padding: .38rem .8rem; border-radius: 999px; font-size: .88rem; color: var(--muted); white-space: nowrap; }
+  .seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-fg); font-weight: 600; }
+  .grow { flex: 1; min-width: 0; }
+  .iconbtn { width: 2.4rem; height: 2.4rem; display: grid; place-items: center; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); flex: none; }
+  .iconbtn svg { width: 1.2rem; height: 1.2rem; }
+  .meta { display: flex; align-items: baseline; gap: .6rem; min-width: 0; }
+  .meta .title { font-weight: 600; font-size: .95rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+  .meta .src { color: var(--muted); font-size: .78rem; white-space: nowrap; }
+  .chip { margin-left: auto; flex: none; font-size: .8rem; font-variant-numeric: tabular-nums; padding: .2rem .6rem;
+          border-radius: 999px; background: var(--accent-soft); color: var(--fg); white-space: nowrap; }
+
+  main { flex: 1; min-height: 0; overflow-y: auto; padding-inline: 16px; padding-block: .4rem 1.5rem; }
+  .text { font-family: var(--q); font-size: var(--ar-size); line-height: 2.25; direction: rtl; text-align: right; margin: 0; }
+  .sg { border-radius: .35em; padding: .05em .1em; color: var(--muted); cursor: pointer; transition: background .2s, color .2s;
+        -webkit-box-decoration-break: clone; box-decoration-break: clone; }
+  .sg.done { color: var(--fg); }
+  .sg.now { background: var(--accent-soft); color: var(--fg); }
+  .sg.self { font-family: var(--ar); }
+  .sg.self.now { background: var(--you-soft); }
+  .w.on { color: var(--accent); }
+  .vm { color: var(--accent); font-size: .8em; }
+  .tail { display: block; margin-top: .5em; padding-top: .3em; border-top: 1px dashed var(--line); }
+  .note { font-family: var(--ar); font-size: calc(var(--ar-size) * .62); color: var(--muted); direction: rtl; margin: 0 0 .2rem; }
+  .note-de { font-size: .82rem; color: var(--muted); font-style: italic; margin: 0 0 .6rem; }
+  .de { margin: 1rem 0 0; font-size: .92rem; color: var(--muted); border-top: 1px solid var(--line); padding-top: .8rem; max-width: 65ch; }
+
+  .turn { flex: none; display: flex; align-items: center; gap: .7rem; padding: .55rem 16px; background: var(--you-soft);
+          border-top: 1px solid var(--line); color: var(--you); font-weight: 600; font-size: .92rem; }
+  .turn .bar { flex: 1; height: 6px; border-radius: 3px; background: var(--line); overflow: hidden; }
+  .turn .bar i { display: block; height: 100%; width: 0; background: var(--you); }
+  .turn .go { margin-left: auto; background: var(--you); color: var(--surface); border-radius: 8px; padding: .45rem .9rem; font-weight: 600; }
+
+  .dock { flex: none; background: var(--surface); border-top: 1px solid var(--line);
+          padding: .7rem 16px calc(.8rem + env(safe-area-inset-bottom, 0px)); display: grid; gap: .7rem; }
+  .controls { display: grid; grid-template-columns: 1fr auto auto auto 1fr; align-items: center; gap: .9rem; }
+  .play { width: 4.2rem; height: 4.2rem; border-radius: 50%; background: var(--accent); color: var(--accent-fg); display: grid; place-items: center;
+          box-shadow: 0 4px 14px color-mix(in srgb, var(--accent) 35%, transparent); }
+  .play svg { width: 1.7rem; height: 1.7rem; }
+  .play.busy { opacity: .7; }
+  .skip { width: 2.9rem; height: 2.9rem; border-radius: 50%; display: grid; place-items: center; border: 1px solid var(--line); }
+  .skip svg { width: 1.25rem; height: 1.25rem; }
+  .small { font-size: .82rem; padding: .35rem .6rem; border-radius: 8px; border: 1px solid var(--line); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .small[aria-pressed="true"] { background: var(--accent-soft); }
+  .controls .l { justify-self: start; } .controls .r { justify-self: end; display: flex; gap: .4rem; }
+  .modes { display: flex; justify-content: center; }
+  .banner { flex: none; margin: 0 16px .4rem; padding: .7rem .8rem; border-radius: 10px; background: var(--accent-soft); font-size: .86rem; }
+
+  .sheet { position: fixed; inset: 0; background: color-mix(in srgb, #000 45%, transparent); display: flex; align-items: flex-end; z-index: 5; }
+  .sheet .panel { background: var(--surface); width: 100%; max-height: 82%; overflow-y: auto; border-radius: 16px 16px 0 0;
+                  padding: .6rem 16px calc(1.2rem + env(safe-area-inset-bottom, 0px)); }
+  .sheet h2 { font-size: .78rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 1rem 0 .3rem; font-weight: 600; }
+  .sheet .head { display: flex; align-items: center; justify-content: space-between; position: sticky; top: -.6rem; background: var(--surface); padding: .4rem 0; }
+  .item { display: flex; gap: .7rem; width: 100%; text-align: left; padding: .6rem .3rem; border-bottom: 1px solid var(--line); align-items: baseline; }
+  .item .n { color: var(--muted); font-variant-numeric: tabular-nums; width: 1.7rem; flex: none; font-size: .82rem; }
+  .item .t { flex: 1; min-width: 0; }
+  .item .r { color: var(--muted); font-size: .76rem; white-space: nowrap; }
+  .item[aria-current="true"] { color: var(--accent); font-weight: 600; }
+  .help { font-size: .86rem; color: var(--muted); }
+  .help a { color: var(--accent); }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div class="progress" aria-hidden="true"><i id="prog"></i></div>
+<header>
+  <div class="row">
+    <div class="seg" role="group" aria-label="Zeit">
+      <button data-t="m" aria-pressed="true">Morgen</button>
+      <button data-t="e" aria-pressed="false">Abend</button>
+      <button data-t="f" aria-pressed="false">Freitag</button>
+    </div>
+    <span class="grow"></span>
+    <button class="iconbtn" id="openList" aria-label="Übersicht">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M8 6h13M8 12h13M8 18h13M3.5 6h.01M3.5 12h.01M3.5 18h.01"/></svg>
+    </button>
+  </div>
+  <div class="meta"><span class="title" id="title"></span><span class="src" id="src"></span><span class="chip" id="count"></span></div>
+</header>
+<div class="banner" id="banner" hidden></div>
+<main id="main">
+  <p class="note" id="note" hidden></p><p class="note-de" id="noteDe" hidden></p>
+  <p class="text" id="text" lang="ar"></p>
+  <p class="de" id="de" hidden></p>
+</main>
+<div class="turn" id="turn" hidden><span id="turnLabel">Jetzt du</span><span class="bar" id="turnBarWrap"><i id="turnBar"></i></span><button class="go" id="turnGo" hidden>Weiter</button></div>
+<div class="dock">
+  <div class="modes"><div class="seg" role="group" aria-label="Modus">
+    <button data-m="with" aria-pressed="true">Mitsprechen</button>
+    <button data-m="after" aria-pressed="false">Nachsprechen</button>
+  </div></div>
+  <div class="controls">
+    <button class="small l" id="rate" aria-label="Tempo">1×</button>
+    <button class="skip" id="prev" aria-label="Vorheriger Text"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 5h2v14H6zM20 5v14L9 12z"/></svg></button>
+    <button class="play" id="play" aria-label="Abspielen"><svg id="playIcon" viewBox="0 0 24 24" fill="currentColor"><path d="M7 4.5v15l13-7.5z"/></svg></button>
+    <button class="skip" id="next" aria-label="Nächster Text"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M16 5h2v14h-2zM4 5v14l11-7z"/></svg></button>
+    <span class="r"><button class="small" id="deT" aria-pressed="false">DE</button><button class="small" id="size" aria-label="Schriftgröße">A+</button></span>
+  </div>
+</div>
+
+<div class="sheet" id="sheet" hidden>
+  <div class="panel" role="dialog" aria-label="Übersicht">
+    <div class="head"><strong>Übersicht</strong><button class="small" id="closeList">Schließen</button></div>
+    <div id="list"></div>
+    <h2>So funktioniert es</h2>
+    <p class="help"><b>Mitsprechen:</b> Die Rezitation läuft durch, das gerade gesprochene Wort ist farbig markiert. <b>Nachsprechen:</b> Nach jedem Abschnitt hält die Rezitation an, du wiederholst ihn, dann geht es weiter.</p>
+    <p class="help"><b>Grün markiert = selbst lesen.</b> Für diese Bittgebete gibt es keine Aufnahme mit genau diesem Wortlaut. Lies sie selbst und tippe dann auf „Weiter“.</p>
+    <p class="help">Wiederholungen (3×, 7×, 25×) laufen automatisch. Tippe auf einen Abschnitt im Text, um dort weiterzumachen.</p>
+    <h2>Mehr</h2>
+    <p class="help"><a href="lesen.html">Leseseite: nur Arabisch, große Schrift</a> · <a href="https://github.com/Bilo5050/adhkar">Projekt auf GitHub (mitmachen)</a></p>
+    <h2>Aufnahmen</h2>
+    <p class="help">Koran: Mishary Rashid Alafasy (Murattal, everyayah.com), Wort-Zeitmarken aus dem Projekt quran-align. Bittgebete Nr. 7, 15, 17 und 18: Hamad ad-Duraihim, aus der Hisn-al-Muslim-Sammlung.</p>
+  </div>
+</div>
+
+<script>
+fetch("data/player.json").then(r => r.json()).then(DATA => {
+  const $ = id => document.getElementById(id);
+  const store = {
+    get(k, d) { try { const v = localStorage.getItem("adhkar2:" + k); return v == null ? d : JSON.parse(v); } catch { return d; } },
+    set(k, v) { try { localStorage.setItem("adhkar2:" + k, JSON.stringify(v)); } catch {} }
+  };
+  const RATES = [0.75, 0.9, 1];
+  const SIZES = ["1.55rem", "1.85rem", "2.25rem", "2.7rem"];
+  const hour = new Date().getHours();
+  const S = {
+    time: store.get("time", (hour >= 3 && hour < 14) ? "m" : "e"),
+    mode: store.get("mode", "with"), rate: store.get("rate", 1), size: store.get("size", 1),
+    showDe: store.get("de", false), pos: store.get("pos", {}), playing: false
+  };
+
+  // ---- playlist: every item expands into a flat list of steps --------------------------------------
+  function playlist(t) {
+    const out = [];
+    DATA.forEach(sec => {
+      if ((t === "f") !== !!sec.friday) return;
+      sec.items.forEach(it => out.push({ sec, it, segs: (t === "e" && it.segsE) ? it.segsE : it.segs }));
+    });
+    return out;
+  }
+  let L = playlist(S.time);
+  const fresh = () => ({ i: 0, rep: 1, tail: 0, s: 0 });
+  let P = Object.assign(fresh(), S.pos[S.time] || {});
+  if (P.i >= L.length) P = fresh();
+  const cur = () => L[P.i];
+  const seg = () => P.tail ? cur().it.tail.segs[P.s] : cur().segs[P.s];
+  function save() { S.pos[S.time] = { i: P.i, rep: P.rep, tail: P.tail, s: P.s }; store.set("pos", S.pos); }
+
+  // next position; returns {gap, cont} or null at the end. cont = audio may run on without a seek
+  function advance() {
+    const e = cur(), it = e.it, list = P.tail ? it.tail.segs : e.segs;
+    if (P.s < list.length - 1) { P.s++; return { gap: 0 }; }
+    if (it.tail && P.tail < it.tail.count - 1) { P.tail++; P.s = 0; return { gap: 500 }; }
+    P.tail = 0; P.s = 0;
+    if (P.rep < it.reps) { P.rep++; return { gap: 900 }; }
+    if (P.i < L.length - 1) { P.i++; P.rep = 1; return { gap: 1400 }; }
+    return null;
+  }
+
+  // ---- audio engine --------------------------------------------------------------------------------
+  const audio = new Audio(); audio.preload = "auto";
+  let timer = null, rafId = 0, wake = null, endAt = 0, curFile = "", waitingSelf = false;
+  const fileUrl = f => f.startsWith("h") ? "audio/hisn/" + f + ".mp3" : "https://everyayah.com/data/Alafasy_128kbps/" + f + ".mp3";
+  function clearT() { clearTimeout(timer); timer = null; cancelAnimationFrame(rafId); }
+
+  function playSeg(resume) {
+    clearT(); hideTurn(); waitingSelf = false;
+    const g = seg(); render();
+    if (g.k === "self") { audio.pause(); return selfStep(g); }
+    const startAt = (resume != null ? resume : g.a) / 1000;
+    endAt = g.b / 1000;
+    audio.defaultPlaybackRate = S.rate; audio.playbackRate = S.rate;
+    if (curFile !== g.f) {
+      curFile = g.f; audio.src = fileUrl(g.f) + "#t=" + startAt.toFixed(2);
+      audio.addEventListener("loadedmetadata", () => {
+        if (Math.abs(audio.currentTime - startAt) > 0.3) { try { audio.currentTime = startAt; } catch {} }
+        audio.playbackRate = S.rate;
+      }, { once: true });
+    } else { try { audio.currentTime = startAt; } catch {} }
+    const p = audio.play(); if (p && p.catch) p.catch(fail);   // called inside the tap, so phones allow sound
+    watch();
+    preloadNext();
+  }
+  function fail(err) {
+    if (err && err.name === "NotAllowedError") { setPlaying(false); return; }
+    banner("Die Aufnahme konnte nicht geladen werden. Prüfe die Internetverbindung und tippe erneut auf Abspielen.");
+    setPlaying(false);
+  }
+  audio.addEventListener("error", () => fail());
+  function watch() {
+    const tick = () => {
+      if (!S.playing) return;
+      highlightWord(audio.currentTime * 1000);
+      if (audio.currentTime >= endAt - 0.03 || audio.ended) return segEnd();
+      rafId = requestAnimationFrame(tick);
+    };
+    rafId = requestAnimationFrame(tick);
+  }
+  audio.addEventListener("timeupdate", () => {   // keeps going when the screen is off and frames stop
+    if (S.playing && !waitingSelf && !audio.paused && seg().k !== "self" && (audio.currentTime >= endAt - 0.03 || audio.ended)) segEnd();
+  });
+  let ending = false;
+  function segEnd() {
+    if (ending) return; ending = true; cancelAnimationFrame(rafId);
+    const g = seg();
+    const spent = (g.b - g.a) / S.rate;
+    const before = { f: g.f, b: g.b };
+    const step = advance(); save();
+    ending = false;
+    if (!step) { audio.pause(); setPlaying(false); P = fresh(); save(); render(true); return; }
+    const n = seg();
+    if (S.mode === "after" && g.k !== "self") {
+      audio.pause();
+      return showTurn(spent * 1.1 + 700, () => playSeg());
+    }
+    // reciting along: let the recording run on if the next phrase follows directly in the same file
+    if (step.gap === 0 && n.k === "q" && n.f === before.f && Math.abs(n.a - before.b) < 400 && !audio.paused) {
+      endAt = n.b / 1000; render(); watch(); return;
+    }
+    audio.pause();
+    timer = setTimeout(() => playSeg(), step.gap || 120);
+  }
+  function selfStep(g) {
+    waitingSelf = true;
+    showTurn(0, null, "Selbst lesen, dann „Weiter“");
+  }
+  $("turnGo").onclick = () => { if (!S.playing) return; waitingSelf = false; hideTurn();
+    const step = advance(); save(); if (!step) { setPlaying(false); P = fresh(); save(); render(true); return; }
+    playSeg(); };
+  function showTurn(ms, then, label) {
+    const t = $("turn"), bar = $("turnBar");
+    $("turnLabel").textContent = label || "Jetzt du – nachsprechen";
+    $("turnGo").hidden = !!ms; $("turnBarWrap").hidden = !ms;
+    t.hidden = false;
+    if (!ms) return;
+    bar.style.transition = "none"; bar.style.width = "0";
+    requestAnimationFrame(() => requestAnimationFrame(() => { bar.style.transition = `width ${ms}ms linear`; bar.style.width = "100%"; }));
+    timer = setTimeout(() => { hideTurn(); then(); }, ms);
+  }
+  function hideTurn() { $("turn").hidden = true; }
+  function preloadNext() {
+    const save = { ...P }; const st = advance(); const n = st ? seg() : null; P = save;
+    if (n && n.f && n.f !== curFile) { const a = new Audio(); a.preload = "auto"; a.src = fileUrl(n.f); }
+  }
+  async function setPlaying(on) {
+    S.playing = on; $("play").setAttribute("aria-label", on ? "Pause" : "Abspielen");
+    $("playIcon").innerHTML = on ? '<path d="M6 4.5h4v15H6zM14 4.5h4v15h-4z"/>' : '<path d="M7 4.5v15l13-7.5z"/>';
+    if (on) { try { wake = await navigator.wakeLock?.request("screen"); } catch {} }
+    else { try { await wake?.release(); } catch {} wake = null; }
+    if ("mediaSession" in navigator) navigator.mediaSession.playbackState = on ? "playing" : "paused";
+  }
+  function pause() { setPlaying(false); clearT(); audio.pause(); hideTurn(); render(); }
+  function resume() {
+    setPlaying(true); banner(null);
+    const g = seg(), t = audio.currentTime * 1000;
+    const inSeg = g.k !== "self" && curFile === g.f && t > g.a && t < g.b - 200;
+    playSeg(inSeg ? t : null);
+  }
+  $("play").onclick = () => S.playing ? pause() : resume();
+  if ("mediaSession" in navigator) {
+    navigator.mediaSession.metadata = new MediaMetadata({ title: "Morgen- und Abendgedenken", artist: "Mishary Alafasy" });
+    navigator.mediaSession.setActionHandler("play", resume);
+    navigator.mediaSession.setActionHandler("pause", pause);
+    try { navigator.mediaSession.setActionHandler("nexttrack", () => jump(P.i + 1)); navigator.mediaSession.setActionHandler("previoustrack", () => jump(P.i - 1)); } catch {}
+  }
+  function jump(i) {
+    const was = S.playing; clearT(); audio.pause(); hideTurn();
+    P = Object.assign(fresh(), { i: Math.max(0, Math.min(L.length - 1, i)) }); save(); render(true);
+    if (was) playSeg();
+  }
+  $("prev").onclick = () => jump(P.s > 0 || P.rep > 1 || P.tail ? P.i : P.i - 1);
+  $("next").onclick = () => jump(P.i + 1);
+
+  // ---- rendering ---------------------------------------------------------------------------------
+  let wordEls = [], lastWord = -1;
+  function addSeg(box, g, k, isTail) {
+    const sp = document.createElement("span");
+    sp.className = "sg" + (g.k === "self" ? " self" : "");
+    sp.dataset.k = k; sp.dataset.tail = isTail ? 1 : 0;
+    if (g.k === "q") {
+      g.w.forEach((w, j) => { const ws = document.createElement("span"); ws.className = "w"; ws.textContent = w; sp.append(ws, " "); });
+      if (g.end) { const m = document.createElement("span"); m.className = "vm"; m.textContent = g.end; sp.append(m); }
+    } else sp.textContent = g.d;
+    sp.onclick = () => { const was = S.playing; clearT(); audio.pause(); hideTurn(); P.tail = isTail ? 1 : 0; P.s = k; save(); render(); if (was) playSeg(); };
+    box.append(sp, " ");
+    return sp;
+  }
+  function render(top) {
+    const e = cur(), it = e.it;
+    document.documentElement.dataset.time = S.time;
+    $("prog").style.width = ((P.i + 1) / L.length * 100) + "%";
+    $("title").textContent = it.title;
+    const kinds = new Set(e.segs.map(g => g.k));
+    $("src").textContent = kinds.has("q") ? "Alafasy" : kinds.has("rec") ? "ad-Duraihim" : "selbst lesen";
+    $("count").textContent = P.tail ? `${P.tail + 1} / ${it.tail.count}` : (it.reps > 1 ? `${P.rep} / ${it.reps}` : "");
+    $("count").hidden = !$("count").textContent;
+    const box = $("text"); box.textContent = "";
+    const spans = e.segs.map((g, k) => addSeg(box, g, k, false));
+    let tailSpans = [];
+    if (it.tail) {
+      const tb = document.createElement("span"); tb.className = "tail";
+      tailSpans = it.tail.segs.map((g, k) => addSeg(tb, g, k, true));
+      const c = document.createElement("span"); c.className = "vm"; c.textContent = " ×" + it.tail.count; tb.append(c);
+      box.append(tb);
+    }
+    spans.forEach((sp, k) => sp.classList.add(P.tail || k < P.s ? "done" : (k === P.s ? "now" : "x")));
+    tailSpans.forEach((sp, k) => { if (P.tail) sp.classList.add(k === P.s ? "now" : (k < P.s ? "done" : "x")); });
+    const now = (P.tail ? tailSpans : spans)[P.s];
+    wordEls = now ? [...now.querySelectorAll(".w")] : [];
+    lastWord = -1;
+    const n = it.note;
+    $("note").hidden = $("noteDe").hidden = !n;
+    if (n) { $("note").textContent = n.ar; $("noteDe").textContent = n.de; }
+    $("de").textContent = it.de || ""; $("de").hidden = !S.showDe || !it.de;
+    document.querySelectorAll("[data-t]").forEach(b => b.setAttribute("aria-pressed", b.dataset.t === S.time));
+    document.querySelectorAll("[data-m]").forEach(b => b.setAttribute("aria-pressed", b.dataset.m === S.mode));
+    $("rate").textContent = String(S.rate).replace(".", ",") + "×";
+    $("deT").setAttribute("aria-pressed", S.showDe);
+    document.documentElement.style.setProperty("--ar-size", SIZES[S.size]);
+    $("size").textContent = S.size === SIZES.length - 1 ? "A−" : "A+";
+    const m = $("main");
+    if (top) m.scrollTop = 0;
+    else if (now) { const r = now.getBoundingClientRect(), mr = m.getBoundingClientRect();
+      if (r.top < mr.top + 10 || r.bottom > mr.bottom - 10) m.scrollTop += r.top - mr.top - mr.height * 0.25; }
+  }
+  function highlightWord(ms) {
+    const g = seg(); if (!g || g.k !== "q") return;
+    let j = -1;
+    for (let x = 0; x < g.t.length; x++) if (ms >= g.t[x][0] - 40) j = x;
+    if (j === lastWord) return;
+    wordEls.forEach((el, x) => el.classList.toggle("on", x === j)); lastWord = j;
+  }
+
+  function banner(msg) {
+    const b = $("banner"); if (!msg) { b.hidden = true; return; }
+    b.textContent = msg; b.hidden = false;
+  }
+
+  // ---- settings ----------------------------------------------------------------------------------
+  document.querySelectorAll("[data-t]").forEach(b => b.onclick = () => {
+    if (S.time === b.dataset.t) return;
+    pause(); S.time = b.dataset.t; store.set("time", S.time);
+    L = playlist(S.time); P = Object.assign(fresh(), S.pos[S.time] || {}); if (P.i >= L.length) P = fresh();
+    render(true);
+  });
+  document.querySelectorAll("[data-m]").forEach(b => b.onclick = () => { S.mode = b.dataset.m; store.set("mode", S.mode); render(); });
+  $("rate").onclick = () => { S.rate = RATES[(RATES.indexOf(S.rate) + 1) % RATES.length] || 1; audio.playbackRate = S.rate; store.set("rate", S.rate); render(); };
+  $("deT").onclick = () => { S.showDe = !S.showDe; store.set("de", S.showDe); render(); };
+  $("size").onclick = () => { S.size = (S.size + 1) % SIZES.length; store.set("size", S.size); render(); };
+
+  $("openList").onclick = () => {
+    const list = $("list"); list.textContent = ""; let lastSec = null;
+    L.forEach((e, i) => {
+      if (e.sec !== lastSec) { const h = document.createElement("h2"); h.textContent = e.sec.de; list.append(h); lastSec = e.sec; }
+      const b = document.createElement("button"); b.className = "item"; if (i === P.i) b.setAttribute("aria-current", "true");
+      const kinds = new Set(e.segs.map(g => g.k));
+      const reps = e.it.reps > 1 ? "×" + e.it.reps : (e.it.tail ? "×" + e.it.tail.count : "");
+      b.innerHTML = `<span class="n">${i + 1}</span><span class="t"></span><span class="r"></span>`;
+      b.querySelector(".t").textContent = e.it.title;
+      b.querySelector(".r").textContent = [reps, kinds.has("q") || kinds.has("rec") ? "♪" : "lesen"].filter(Boolean).join(" · ");
+      b.onclick = () => { $("sheet").hidden = true; jump(i); };
+      list.append(b);
+    });
+    $("sheet").hidden = false;
+    list.querySelector('[aria-current="true"]')?.scrollIntoView({ block: "center" });
+  };
+  $("closeList").onclick = () => $("sheet").hidden = true;
+  $("sheet").onclick = ev => { if (ev.target.id === "sheet") $("sheet").hidden = true; };
+
+  render(true);
+});
+</script>
+
+</body>
+</html>
